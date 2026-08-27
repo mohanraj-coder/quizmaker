@@ -5,27 +5,23 @@ agent conversation, so it describes only what is stable and true of the project.
 
 ## Project
 
-<!--
-Replace this section during Sprint 1 with a short description of what you are building:
-the problem, the primary user, and the current state. Two or three sentences.
-Keep it current. An out-of-date description here misleads every future conversation.
--->
+Quiz Maker is a web app for creating, managing, and attempting quizzes. The current work is the authentication foundation: sign up, sign in, sign out, and session-protected pages.
 
-This is an unmodified AISprints starter. No application features have been built yet.
-The technical PRD in `ai-workspace/` is the source of truth for what is being built and
-for the current phase of work.
+The source of truth is `ai-workspace/AUTHENTICATION_TECHNICAL_PRD.md`. Implementation follows that PRD with TDD.
 
 ## Stack
 
 - **Next.js 16** with the App Router and React 19
 - **Cloudflare Workers** for hosting, via `@opennextjs/cloudflare`
+- **Cloudflare D1** for user and session storage (binding `DB`)
 - **Tailwind CSS v4**, configured in CSS rather than a JS config file
 - **shadcn/ui** on Base UI, `base-nova` style, with Lucide icons
 - **TypeScript** in strict mode
 - **Wrangler** for Cloudflare configuration, secrets, and deployment
+- **Vitest** for tests
+- **Zod** for parsing authentication form input
 
-No database, authentication, testing framework, or AI SDK is installed yet. Do not
-write code that imports one without adding it first and telling the user.
+Passwords are hashed with PBKDF2 (Web Crypto). Sessions are server-side records in D1, referenced by an HttpOnly cookie. Do not add a second auth library without asking.
 
 ## Layout
 
