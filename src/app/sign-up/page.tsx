@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/app/actions/auth";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { MCQ_DASHBOARD_PATH } from "@/lib/auth/paths";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const metadata = {
 export default async function SignUpPage() {
 	const user = await getCurrentUser();
 	if (user) {
-		redirect("/dashboard");
+		redirect(MCQ_DASHBOARD_PATH);
 	}
 
 	return (

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/app/actions/auth";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { AUTH_MESSAGES } from "@/lib/auth/messages";
+import { MCQ_DASHBOARD_PATH } from "@/lib/auth/paths";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function SignInPage({
 }) {
 	const user = await getCurrentUser();
 	if (user) {
-		redirect("/dashboard");
+		redirect(MCQ_DASHBOARD_PATH);
 	}
 
 	const params = await searchParams;

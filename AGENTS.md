@@ -5,7 +5,7 @@ agent conversation, so it describes only what is stable and true of the project.
 
 ## Project
 
-Quiz Maker is a web app for creating, managing, and attempting quizzes. The current work is the authentication foundation: sign up, sign in, sign out, and session-protected pages.
+Quiz Maker is a web app for creating, managing, and attempting quizzes. The current work is the authentication foundation: sign up, sign in, sign out, session-protected pages, and the MCQ Dashboard as the signed-in home.
 
 The source of truth is `ai-workspace/AUTHENTICATION_TECHNICAL_PRD.md`. Implementation follows that PRD with TDD.
 

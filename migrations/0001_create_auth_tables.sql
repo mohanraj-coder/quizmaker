@@ -1,4 +1,7 @@
 -- Migration number: 0001 	 2026-08-27
+-- Auth-only schema. Application tables: users, sessions.
+-- Do not add quiz, attempt, or report tables here.
+
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
   first_name TEXT NOT NULL,

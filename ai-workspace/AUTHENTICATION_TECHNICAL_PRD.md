@@ -1,17 +1,17 @@
 Date created: 2026-08-27
-Date last modified: 2026-08-27
+Date last modified: 2026-08-31
 
 # Authentication Technical PRD
 
 **Document type**: Technical Product Requirements Document  
 **Project**: Quiz Maker  
-**Sprint**: Authentication (Sprint 0 design complete; implementation and Cloudflare deploy complete)  
+**Sprint**: Authentication (implemented; MCQ Dashboard is the signed-in home; Cloudflare deploy complete)  
 **Audience**: Developers, reviewers, and AI-driven workflows for all future sprints  
 **Status**: IMPLEMENTED AND DEPLOYED — this document remains the behaviour contract
 
 This document is the source of truth for the Authentication module. It follows `ai-workspace/TEMPLATE_TECHNICAL_PRD.md` and is the primary reference for later AI Sprints. Later sprints must read this document before writing tests or code.
 
-Do not rebuild Sign Up, Sign In, Sign Out, or sessions as a second system. Extend this module. Quiz features remain out of scope here.
+Do not rebuild Sign Up, Sign In, Sign Out, or sessions as a second system. Extend this module. After Sign In the user lands on the **MCQ Dashboard**. Quiz creation, attempts, and reports remain out of scope here.
 
 ---
 
@@ -19,7 +19,7 @@ Do not rebuild Sign Up, Sign In, Sign Out, or sessions as a second system. Exten
 
 Quiz Maker is a web application for creating, managing, and attempting quizzes, and for viewing results across the quiz lifecycle. None of those product features can be trusted until the application can identify who is using it.
 
-Today the application has an email-and-password authentication foundation: visitors can register, sign in, remain signed in until they sign out, and cannot open the Dashboard without a session. Later sprints can attach quizzes, attempts, and reports to that known user.
+Today the application has an email-and-password authentication foundation: visitors can register, sign in, remain signed in until they sign out, and cannot open the MCQ Dashboard without a session. Later sprints can attach quizzes, attempts, and reports to that known user.
 
 Sprint 0 designed this identity layer. Implementation followed this PRD with TDD and deployed the Worker to Cloudflare.
 
@@ -49,9 +49,10 @@ This authentication layer is the foundation for every later Quiz Maker feature. 
 - **Zod** parses Sign Up and Sign In form input.
 - **Vitest** and Testing Library cover validation, auth services, and form behaviour (`npm test`).
 - Passwords are hashed with **PBKDF2-SHA256** via Web Crypto. Sessions are server-side D1 rows plus a signed HttpOnly cookie (`qm_session`).
-- Pages: `/` (redirects by session), `/sign-up`, `/sign-in`, `/dashboard` (protected).
-- Sign Up and Sign In share a Tailwind `AuthShell` (centered card, wordmark, footer links). Dashboard has a header with identity and Sign Out.
-- Production Worker: `https://quizmaker.es-quizmaker.workers.dev`
+- Pages: `/` (redirects by session), `/sign-up`, `/sign-in`, `/mcq-dashboard` (protected home after Sign In). `/dashboard` redirects to `/mcq-dashboard`.
+- Sign Up and Sign In share a Tailwind `AuthShell` (centered card, wordmark, footer links). The MCQ Dashboard has a header with identity and Sign Out.
+- D1 application tables are **only** `users` and `sessions`. No quiz, attempt, or report tables.
+- Production Worker: `https://quizmaker.es-quizmaker.workers.dev` (version `b9836f74-f1a6-4b3a-bef6-cffd8a20d8a2`)
 - No AI SDK is installed. Quiz features are not built.
 
 ### Primary user for this sprint
@@ -104,14 +105,14 @@ Later sprints must follow the behaviour in this PRD. They must not replace this 
 1. Users register and sign in with email and password only. There is no social login, SSO, or magic link in this sprint.
 2. One email address maps to one account. Email uniqueness is enforced in a case-insensitive way after trimming spaces.
 3. After a successful Sign Up, the user is **not** signed in automatically. They must Sign In.
-4. After a successful Sign In, the user is taken to a Dashboard. In this sprint the Dashboard is a protected landing page only. It does not contain quiz features.
+4. After a successful Sign In, the user is taken to the **MCQ Dashboard** (`/mcq-dashboard`). That page is the signed-in home. Creating, managing, and attempting quizzes is still a later sprint; the MCQ Dashboard shows identity, Sign Out, and an empty MCQ list.
 5. A session remains valid until the user signs out, or until the session is otherwise invalidated for security. This sprint does not add an idle timeout or “remember me” checkbox.
 6. There is a single user type. There is no administrator role, teacher role, or student role yet.
 7. Users have access to a modern browser and a stable internet connection.
 8. Email delivery is not available in this sprint. The application does not send confirmation, welcome, or password-reset emails.
 9. Storage (D1), sessions (HttpOnly cookie + D1), Zod, and Vitest are in the repository. Further dependencies still need to be proposed first.
 10. English is the only language for labels, validation, and errors in this sprint.
-11. The Sign Up and Sign In experiences are public pages. The Dashboard is a protected page.
+11. The Sign Up and Sign In experiences are public pages. The MCQ Dashboard is a protected page.
 12. “Current application” means this Quiz Maker repository on the stack described in `AGENTS.md`.
 
 ---
@@ -128,13 +129,13 @@ Later sprints must follow the behaviour in this PRD. They must not replace this 
 - Redirect to the Sign In page after successful registration.
 - Sign In with Email and Password.
 - Credential validation and clear, safe error messages for failed login.
-- Redirect to the Dashboard after successful login.
+- Redirect to the MCQ Dashboard after successful login.
 - Session that keeps the user signed in across page loads until logout.
 - Sign Out that clears the session and redirects to Sign In.
 - Restriction of protected pages to authenticated users.
 - Redirect of unauthenticated users from protected pages to Sign In.
-- Redirect of already-authenticated users away from Sign Up and Sign In to the Dashboard.
-- A minimal protected Dashboard that confirms the user is signed in and offers Sign Out.
+- Redirect of already-authenticated users away from Sign Up and Sign In to the MCQ Dashboard.
+- A protected **MCQ Dashboard** that confirms the user is signed in, offers Sign Out, and is the home for multiple-choice quizzes (empty until a later quiz sprint).
 - Accessibility, security, and performance requirements for these pages and flows.
 - A TDD plan that later implementation sprints must follow.
 - Local verification of the authentication flow on Node (`npm run dev`) and on the local Cloudflare Workers runtime (`npm run preview`).
@@ -187,13 +188,13 @@ Each story is written from the Account Holder’s point of view. Acceptance of a
 | US-02 | As a new user, I want immediate, field-level validation so that I can correct mistakes before the account is created.                                                     | Must     |
 | US-03 | As a new user, I want to be told if my email is already registered so that I can sign in instead of creating a duplicate account.                                         | Must     |
 | US-04 | As a newly registered user, I want to land on the Sign In page so that I can authenticate with the account I just created.                                                | Must     |
-| US-05 | As a registered user, I want to sign in with my email and password so that I can reach my Dashboard.                                                                      | Must     |
+| US-05 | As a registered user, I want to sign in with my email and password so that I can reach my MCQ Dashboard.                                                                      | Must     |
 | US-06 | As a registered user, I want a clear error when my login details are wrong so that I know the sign-in failed without guessing what the application did.                   | Must     |
 | US-07 | As a signed-in user, I want my session to continue until I sign out so that I do not have to log in on every page.                                                        | Must     |
 | US-08 | As a signed-in user, I want to sign out so that no one else using the same browser can act as me.                                                                         | Must     |
 | US-09 | As a signed-in user, I want protected pages to be available only to me when I am authenticated.                                                                           | Must     |
 | US-10 | As a visitor who is not signed in, I want to be sent to Sign In if I try to open a protected page so that I am not shown private content.                                 | Must     |
-| US-11 | As a signed-in user, I want Sign Up and Sign In to send me to the Dashboard so that I am not asked to authenticate again.                                                 | Must     |
+| US-11 | As a signed-in user, I want Sign Up and Sign In to send me to the MCQ Dashboard so that I am not asked to authenticate again.                                                 | Must     |
 | US-12 | As a user, I want the authentication pages to be usable with keyboard, screen reader, and sufficient contrast so that I can complete the flow regardless of how I browse. | Must     |
 
 
@@ -212,7 +213,7 @@ Each story is written from the Account Holder’s point of view. Acceptance of a
 7. The application creates the account and does **not** start a session.
 8. The user is redirected to the Sign In page and sees a success message that the account was created.
 9. The user enters Email and Password and submits Sign In.
-10. If credentials are valid, a session starts and the user is redirected to the Dashboard.
+10. If credentials are valid, a session starts and the user is redirected to the MCQ Dashboard.
 11. If credentials are invalid, the user stays on Sign In and sees a login error.
 
 ### 2. Returning user — Sign In
@@ -220,7 +221,7 @@ Each story is written from the Account Holder’s point of view. Acceptance of a
 1. The user opens the application while signed out.
 2. The user is on (or is sent to) the Sign In page.
 3. The user enters Email and Password and submits.
-4. Valid credentials start a session and open the Dashboard.
+4. Valid credentials start a session and open the MCQ Dashboard.
 5. Invalid credentials keep the user on Sign In with an error.
 
 ### 3. Authenticated user — Session and Sign Out
@@ -234,7 +235,7 @@ Each story is written from the Account Holder’s point of view. Acceptance of a
 
 ### 4. Unauthenticated access to a protected page
 
-1. A signed-out user requests a protected page (for example Dashboard, or a later quiz page that uses the same rule).
+1. A signed-out user requests a protected page (for example the MCQ Dashboard, or a later quiz page that uses the same rule).
 2. The application does not show the protected content.
 3. The user is redirected to Sign In.
 
@@ -249,36 +250,37 @@ Public pages (no session required):
 
 Protected pages (session required):
 
-- Dashboard (the only protected page in this sprint)
+- MCQ Dashboard (`/mcq-dashboard`; `/dashboard` is an alias)
 
 Navigation rules:
 
 
-| Starting point                               | User state                           | Destination  |
-| -------------------------------------------- | ------------------------------------ | ------------ |
-| Application root                             | Signed out                           | Sign In      |
-| Application root                             | Signed in                            | Dashboard    |
-| Sign In                                      | Signed out                           | Sign In page |
-| Sign In                                      | Signed in                            | Dashboard    |
-| Sign Up                                      | Signed out                           | Sign Up page |
-| Sign Up                                      | Signed in                            | Dashboard    |
-| Dashboard                                    | Signed out                           | Sign In      |
-| Dashboard                                    | Signed in                            | Dashboard    |
-| Any future protected page                    | Signed out                           | Sign In      |
-| Sign In → “Create an account”                | Signed out                           | Sign Up      |
-| Sign Up → “Already have an account? Sign in” | Signed out                           | Sign In      |
-| Successful Sign Up                           | Signed out (new account, no session) | Sign In      |
-| Successful Sign In                           | Signed in                            | Dashboard    |
-| Sign Out                                     | Session cleared                      | Sign In      |
+| Starting point                               | User state                           | Destination     |
+| -------------------------------------------- | ------------------------------------ | --------------- |
+| Application root                             | Signed out                           | Sign In         |
+| Application root                             | Signed in                            | MCQ Dashboard   |
+| Sign In                                      | Signed out                           | Sign In page    |
+| Sign In                                      | Signed in                            | MCQ Dashboard   |
+| Sign Up                                      | Signed out                           | Sign Up page    |
+| Sign Up                                      | Signed in                            | MCQ Dashboard   |
+| MCQ Dashboard                                | Signed out                           | Sign In         |
+| MCQ Dashboard                                | Signed in                            | MCQ Dashboard   |
+| `/dashboard`                                 | Any                                  | MCQ Dashboard   |
+| Any future protected page                    | Signed out                           | Sign In         |
+| Sign In → “Create an account”                | Signed out                           | Sign Up         |
+| Sign Up → “Already have an account? Sign in” | Signed out                           | Sign In         |
+| Successful Sign Up                           | Signed out (new account, no session) | Sign In         |
+| Successful Sign In                           | Signed in                            | MCQ Dashboard   |
+| Sign Out                                     | Session cleared                      | Sign In         |
 
 
-There is no navigation in this sprint to quiz creation, quiz lists, attempts, or reports.
+There is no navigation in this sprint to quiz creation, quiz lists, attempts, or reports. The MCQ Dashboard is the signed-in home and shows an empty MCQ list until a later sprint.
 
 Logical page names for later implementation (not a folder structure):
 
 - **Sign In page**
 - **Sign Up page**
-- **Dashboard page** (protected placeholder)
+- **MCQ Dashboard page** (protected home after Sign In)
 
 ---
 
@@ -303,7 +305,7 @@ Logical page names for later implementation (not a folder structure):
 3. The server looks up the account and verifies the password against the stored hash.
 4. If the email is unknown or the password does not match, Sign In fails with a **single generic error**. The response must not reveal whether the email exists.
 5. If verification succeeds, the application creates a session, stores it so later requests can recognise the user, and sets a secure session cookie.
-6. The user is redirected to the Dashboard.
+6. The user is redirected to the MCQ Dashboard.
 
 ### Session
 
@@ -315,7 +317,7 @@ Logical page names for later implementation (not a folder structure):
 
 ### Sign Out
 
-1. The signed-in user triggers Sign Out from the Dashboard (and from any later authenticated chrome that reuses this action).
+1. The signed-in user triggers Sign Out from the MCQ Dashboard (and from any later authenticated chrome that reuses this action).
 2. The server invalidates the session so it cannot be reused.
 3. The session cookie is cleared.
 4. The user is redirected to Sign In.
@@ -326,7 +328,7 @@ Logical page names for later implementation (not a folder structure):
 1. Every protected page checks for a valid session **on the server** before rendering private content.
 2. Client-only hiding of UI is not sufficient protection.
 3. Unauthenticated access redirects to Sign In.
-4. After Sign In, the user may be returned to the Dashboard. Returning to a deep link is a future enhancement; this sprint always lands on Dashboard after login.
+4. After Sign In, the user is returned to the MCQ Dashboard. Returning to a deep link is a future enhancement; this sprint always lands on the MCQ Dashboard after login.
 
 ---
 
@@ -349,14 +351,14 @@ Logical page names for later implementation (not a folder structure):
 | FR-12 | Sign In shall validate that Email and Password are present and that Email is in a valid format before credential checks.         |
 | FR-13 | Sign In shall accept only a registered email paired with the correct password.                                                   |
 | FR-14 | Failed Sign In shall show a meaningful error and shall not start a session.                                                      |
-| FR-15 | Successful Sign In shall start a session and redirect to the Dashboard.                                                          |
+| FR-15 | Successful Sign In shall start a session and redirect to the MCQ Dashboard.                                                      |
 | FR-16 | The session shall identify the signed-in user on later requests until Sign Out.                                                  |
 | FR-17 | The application shall provide Sign Out.                                                                                          |
 | FR-18 | Sign Out shall invalidate the session, clear the session cookie, and redirect to Sign In.                                        |
 | FR-19 | Protected pages shall be available only to authenticated users.                                                                  |
 | FR-20 | Unauthenticated requests to protected pages shall redirect to Sign In and shall not leak protected content.                      |
-| FR-21 | Authenticated users who open Sign Up or Sign In shall be redirected to the Dashboard.                                            |
-| FR-22 | The Dashboard shall confirm that the user is signed in (at least first name or email) and shall offer Sign Out.                  |
+| FR-21 | Authenticated users who open Sign Up or Sign In shall be redirected to the MCQ Dashboard.                                        |
+| FR-22 | The MCQ Dashboard shall confirm that the user is signed in (at least first name or email) and shall offer Sign Out.              |
 | FR-23 | Passwords shall never be stored, logged, or displayed in recoverable form.                                                       |
 | FR-24 | Validation shall run on the server even if the client already validated.                                                         |
 | FR-25 | Email uniqueness checks shall ignore surrounding spaces and letter case.                                                         |
@@ -433,20 +435,21 @@ Behaviour:
 - Submit is blocked while required Sign In field rules fail.
 - Password is masked by default.
 - The submit control shows a busy/disabled state during submission.
-- After success, the user goes to the Dashboard.
+- After success, the user goes to the MCQ Dashboard.
 - After failure, the user stays on Sign In. The password field may be cleared; the email may remain.
 
-### Dashboard page (this sprint only)
+### MCQ Dashboard page
 
-Purpose: prove that the session works and provide Sign Out. This is not a quiz workspace.
+Purpose: signed-in home for multiple-choice quizzes. Prove the session works and provide Sign Out.
 
 The page shall include:
 
-- A title, for example **Dashboard**.
+- A title **MCQ Dashboard**.
 - A short welcome that includes the user’s first name or email.
 - A **Sign out** control.
+- An empty MCQ list until a later sprint adds create / attempt.
 
-The Dashboard shall not include quiz creation, quiz lists, attempts, or reports.
+The MCQ Dashboard shall not yet include quiz creation forms, attempts, or reports.
 
 ### Shared UI rules
 
@@ -481,7 +484,7 @@ The Dashboard shall not include quiz creation, quiz lists, attempts, or reports.
 | Password | Yes      | Password | Masked by default. |
 
 
-### Display-only (Dashboard)
+### Display-only (MCQ Dashboard)
 
 
 | Item             | Required | Notes                                               |
@@ -616,7 +619,7 @@ System errors are form-level, not attached to a single field. They must not incl
 | Event           | Message                                            | Where it appears                           |
 | --------------- | -------------------------------------------------- | ------------------------------------------ |
 | Account created | Account created. Please sign in.                   | Sign In page, after redirect from Sign Up  |
-| Signed in       | None required. The Dashboard is the success state. | Dashboard                                  |
+| Signed in       | None required. The MCQ Dashboard is the success state. | MCQ Dashboard                              |
 | Signed out      | You have been signed out.                          | Sign In page, after redirect from Sign Out |
 
 
@@ -643,7 +646,7 @@ These requirements sit with Authentication Requirements and Non-Functional Requi
 | SR-10 | Authorisation is server-side. Hidden buttons are not access control.                                                                                                           |
 | SR-11 | Validate and constrain all authentication inputs (length, format) to reduce abuse.                                                                                             |
 | SR-12 | Protect Sign Up, Sign In, and Sign Out against cross-site request forgery.                                                                                                     |
-| SR-13 | Escape or encode user-supplied names when showing them on the Dashboard so stored text cannot run as HTML or script.                                                           |
+| SR-13 | Escape or encode user-supplied names when showing them on the MCQ Dashboard so stored text cannot run as HTML or script.                                                       |
 | SR-14 | Do not put passwords or session tokens in URLs.                                                                                                                                |
 | SR-15 | Dependency additions for auth or crypto must be proposed first, justified, and compatible with the Cloudflare Workers runtime.                                                 |
 
@@ -668,7 +671,7 @@ Covered in Security Requirements and Authentication Requirements. Additional qua
 | NFR-P02 | A successful Sign In or Sign Up round trip should complete within 2 seconds under normal local or preview load, excluding intentional password-hashing delay.                                 |
 | NFR-P03 | Password hashing may be deliberately slow. That delay must stay within a range that still feels responsive (target under 1 second of hashing time per attempt on the deployment environment). |
 | NFR-P04 | Validation feedback for empty and format errors should appear without a full page wait when implemented as client-side checks.                                                                |
-| NFR-P05 | Protected-page redirect for signed-out users must not first flash private Dashboard content.                                                                                                  |
+| NFR-P05 | Protected-page redirect for signed-out users must not first flash private MCQ Dashboard content.                                                                                              |
 
 
 ### Accessibility
@@ -676,7 +679,7 @@ Covered in Security Requirements and Authentication Requirements. Additional qua
 
 | ID      | Requirement                                                                                                                                         |
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NFR-A01 | Meet WCAG 2.2 Level AA for Sign Up, Sign In, and Dashboard.                                                                                         |
+| NFR-A01 | Meet WCAG 2.2 Level AA for Sign Up, Sign In, and the MCQ Dashboard.                                                                             |
 | NFR-A02 | All interactive controls are reachable and usable with keyboard only.                                                                               |
 | NFR-A03 | Visible focus is present on interactive elements.                                                                                                   |
 | NFR-A04 | Form fields have programmatic labels.                                                                                                               |
@@ -730,11 +733,11 @@ The project uses **Vitest** (and React Testing Library for page behaviour) follo
 2. Sign Up rejection paths (missing fields, bad email, weak password, mismatch, duplicate email).
 3. Sign Up success path (account created, no session, redirect to Sign In, success message).
 4. Sign In rejection paths (missing fields, invalid credentials generic message, no session).
-5. Sign In success path (session established, redirect to Dashboard).
+5. Sign In success path (session established, redirect to the MCQ Dashboard).
 6. Session persistence across a subsequent protected-page request.
 7. Sign Out (session unusable, redirect to Sign In).
-8. Unauthenticated access to Dashboard redirects to Sign In without protected content.
-9. Authenticated access to Sign In / Sign Up redirects to Dashboard.
+8. Unauthenticated access to the MCQ Dashboard redirects to Sign In without protected content.
+9. Authenticated access to Sign In / Sign Up redirects to the MCQ Dashboard.
 
 ### Test categories
 
@@ -743,8 +746,8 @@ The project uses **Vitest** (and React Testing Library for page behaviour) follo
 | -------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Unit           | Validation rules in isolation                                                     | Password without uppercase fails; emails that differ only by case are the same account key                           |
 | Integration    | Sign Up / Sign In / Sign Out against persistence and session, with storage mocked | Duplicate email rejected; valid login creates a session that later requests accept                                   |
-| UI / component | What the user can see and do                                                      | Inline error under Confirm Password; submit disabled or blocked while invalid; Sign out control present on Dashboard |
-| Access control | Server-side protection                                                            | Signed-out Dashboard request redirects; signed-in Sign In request redirects                                          |
+| UI / component | What the user can see and do                                                      | Inline error under Confirm Password; submit disabled or blocked while invalid; Sign out control present on the MCQ Dashboard |
+| Access control | Server-side protection                                                            | Signed-out MCQ Dashboard request redirects; signed-in Sign In request redirects                                          |
 
 
 Server-only logic is tested as functions. Interactive forms are tested as client components with Testing Library, querying by role and accessible name.
@@ -768,17 +771,45 @@ Route-protection rules FR-19, FR-20, and FR-21 have tests.
 
 ## Technical Requirements
 
-This section describes **what the system must do**, not how to lay out files, tables, or HTTP routes. Database schema, APIs, UI components, and folder structures are **out of this document** by design. The implementation sprint will choose concrete mechanisms that satisfy these behaviours and the stack in `AGENTS.md`.
+This section describes **what the system must do** and the **D1 tables that exist today**. Server Actions remain the mutation entry points. Do not add quiz, attempt, or report tables until a later PRD.
 
-### Identity and persistence (conceptual)
+### Database schema (D1)
 
-The system must persist:
+Application tables are **only** `users` and `sessions`. Drop any other application table. Wrangler’s `d1_migrations` bookkeeping table may remain.
+
+**Required fields**
+
+| Table     | Required columns                                      | Notes                                      |
+| --------- | ----------------------------------------------------- | ------------------------------------------ |
+| `users`   | `id`, `first_name`, `last_name`, `email`, `password_hash` | Email is unique. Password is a one-way hash. |
+| `sessions`| `id`, `user_id`                                       | `user_id` references `users(id)`.          |
+
+`created_at` on both tables is metadata only (not shown in the UI).
+
+```sql
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+
+### Identity and persistence
+
+The system persists:
 
 - A user identity with first name, last name, email, and password hash.
-- Enough timestamps or metadata to support auditing later (at minimum a created time is recommended).
 - Session state that can be created, read, and invalidated.
-
-Physical tables, column types, and indexes are not specified here.
 
 ### Application operations (conceptual)
 
@@ -805,13 +836,13 @@ Request and response payloads, status codes, and URL paths for APIs are not spec
 - Collect and validate Email and Password.
 - Show field errors and the generic credentials error as specified.
 - Show post-registration and post-logout success messages when those events just happened.
-- On success, redirect to Dashboard.
+- On success, redirect to the MCQ Dashboard.
 
-#### Dashboard page
+#### MCQ Dashboard page
 
 - Available only with a valid session.
-- Shows signed-in identity and Sign Out.
-- Contains no quiz features.
+- Shows signed-in identity, Sign Out, and an empty MCQ list.
+- Creating, managing, and attempting quizzes is a later sprint.
 
 ### Platform constraints the implementation must respect
 
@@ -840,12 +871,15 @@ Updated as the authentication module was implemented.
 - `src/components/auth/auth-shell.tsx` — Shared Tailwind layout for Sign Up and Sign In
 - `src/components/auth/sign-up-form.tsx` — Sign Up form with inline validation
 - `src/components/auth/sign-in-form.tsx` — Sign In form with inline validation
-- `src/components/auth/sign-out-button.tsx` — Dashboard Sign Out control
+- `src/lib/auth/paths.ts` — Canonical routes (`/sign-in`, `/sign-up`, `/mcq-dashboard`)
+- `src/components/auth/sign-out-button.tsx` — MCQ Dashboard Sign Out control
 - `src/app/sign-up/page.tsx` — Sign Up page (`/sign-up`)
 - `src/app/sign-in/page.tsx` — Sign In page (`/sign-in`)
-- `src/app/dashboard/page.tsx` — Protected Dashboard (`/dashboard`)
+- `src/app/mcq-dashboard/page.tsx` — Protected MCQ Dashboard (`/mcq-dashboard`)
+- `src/app/dashboard/page.tsx` — Alias that redirects to `/mcq-dashboard`
 - `src/app/page.tsx` — Root redirect by session
-- `migrations/0001_create_auth_tables.sql` — D1 tables for users and sessions
+- `migrations/0001_create_auth_tables.sql` — D1 `users` and `sessions` only
+- `migrations/0002_drop_non_auth_tables.sql` — Drops leftover quiz-style tables if they exist
 - `vitest.config.ts` and `src/test-setup.ts` — Test runner and Testing Library cleanup
 
 #### Implementation patterns
@@ -854,12 +888,13 @@ Updated as the authentication module was implemented.
 - Client forms validate first and block submit; the server repeats validation and uniqueness/credential checks.
 - Email is stored canonicalised (trim + lowercase). Duplicate detection uses that form.
 - Session cookie: `HttpOnly`, `SameSite=Lax`, `Secure` when the request is HTTPS, path `/`. Sign Out deletes the D1 session row and clears the cookie.
-- Protected pages call `getCurrentUser()` on the server and `redirect("/sign-in")` before rendering Dashboard content.
+- Protected pages call `getCurrentUser()` on the server and `redirect("/sign-in")` before rendering MCQ Dashboard content.
 - Tests mock Server Actions at the module boundary. Auth service tests use an in-memory store, not live D1.
 - UI uses Tailwind v4 theme tokens (`bg-muted/40`, `bg-card`, `text-destructive`, `border-border`) and shadcn/ui `Card`, `Field`, `Input`, and `Button`. No parallel CSS modules or hex colors.
 - Sign Up first/last name sit in a two-column grid from the `sm` breakpoint. Inputs and primary actions are `h-11` (44px). Sign Up / Sign In submit buttons are full width.
 - Form errors use a destructive banner (`role="alert"`). Sign In success messages (`registered=1`, `signedOut=1`) use a muted `role="status"` banner.
-- Dashboard layout: top bar with Quiz Maker wordmark, signed-in email (`sm` and up), and outline **Sign out**; welcome card in the main area.
+- Successful Sign In redirects to `/mcq-dashboard`. `/dashboard` is an alias to that path.
+- MCQ Dashboard layout: top bar with Quiz Maker wordmark, signed-in email (`sm` and up), outline **Sign out**, welcome card, and empty MCQ list.
 
 #### Important notes
 
@@ -1094,7 +1129,7 @@ This phase does not add product features. It publishes and verifies the authenti
 3. Confirm production secrets with `npx wrangler secret put` for every secret used locally. Never commit secrets.
 4. After any binding change in `wrangler.jsonc`, run `npm run cf-typegen`. Do not edit generated type files by hand.
 5. Run `npm run deploy`.
-6. On the deployed HTTPS URL, complete Sign Up, Sign In, session reload, Sign Out, and unauthenticated access to the Dashboard.
+6. On the deployed HTTPS URL, complete Sign Up, Sign In, session reload, Sign Out, and unauthenticated access to the MCQ Dashboard.
 7. Confirm the live session cookie is `HttpOnly` and `Secure`.
 8. Record the deployed URL and pass/fail notes in **Current Status**.
 
@@ -1102,7 +1137,7 @@ This phase does not add product features. It publishes and verifies the authenti
 
 - Authentication verified on the Cloudflare Worker, or a recorded reason that Cloudflare deploy was skipped (no user request, or no Cloudflare credentials)
 
-**Result**: Redeployed 2026-08-27 to `https://quizmaker.es-quizmaker.workers.dev` (Worker version `6e1a4f8e-9b51-495e-bb60-ca4f05e7338e`). This version includes the Tailwind `AuthShell` Sign Up / Sign In layout and Dashboard header Sign Out. HTTPS `/` and `/dashboard` redirect signed-out users to `/sign-in`; `/sign-in` and `/sign-up` return 200. Live `/sign-up` HTML includes the Quiz Maker wordmark, **Create an account**, two-column name fields, `h-11` inputs, and **Already have an account? Sign in**. D1 binding `DB` points at remote database `quizmaker` (`77853f50-68c5-4e72-87dc-62fac583a24c`). `SESSION_SECRET` is a Wrangler secret. Remote D1 migrations were not applied in this deploy. Live Sign Up → Sign In → reload → Sign Out was not click-tested; cookie `Secure` on a successful live login was not captured.
+**Result**: Redeployed 2026-08-31 to `https://quizmaker.es-quizmaker.workers.dev` (Worker version `b9836f74-f1a6-4b3a-bef6-cffd8a20d8a2`). Signed-out HTTPS `/` and `/mcq-dashboard` redirect to `/sign-in`; `/dashboard` redirects to `/mcq-dashboard`; `/sign-in` returns 200. Remote D1 migrations were not applied.
 
 ---
 
@@ -1128,15 +1163,15 @@ A criterion is met only when it is demonstrated (tests and, for UI, a real brows
 - [x] Email and Password are present and labelled.
 - [x] Missing email or password shows the specified field errors and starts no session.
 - [x] Wrong password or unknown email shows only “Invalid email or password.”
-- [x] Valid credentials redirect to the Dashboard and establish a session.
+- [x] Valid credentials redirect to the MCQ Dashboard and establish a session.
 - [x] After a full page reload, the user is still signed in.
 
 ### Sign Out and protection
 
 - [x] Sign Out clears the session and redirects to Sign In with “You have been signed out.”
-- [x] After Sign Out, the previous session cannot open the Dashboard.
-- [x] A signed-out user opening the Dashboard is redirected to Sign In and does not see Dashboard content.
-- [x] A signed-in user opening Sign In or Sign Up is redirected to the Dashboard.
+- [x] After Sign Out, the previous session cannot open the MCQ Dashboard.
+- [x] A signed-out user opening the MCQ Dashboard is redirected to Sign In and does not see MCQ Dashboard content.
+- [x] A signed-in user opening Sign In or Sign Up is redirected to the MCQ Dashboard.
 
 ### Quality
 
@@ -1169,10 +1204,10 @@ These measure whether the foundation is usable after implementation, not whether
 | Sign Up completion       | A new user with valid data can create an account in one submit after corrections | Manual and automated happy-path tests                        |
 | Validation clarity       | 100% of specified field errors appear on the correct field                       | Automated UI/unit tests against the message table            |
 | Duplicate email handling | 100% of duplicate attempts blocked with the specified message                    | Automated test                                               |
-| Sign In success          | Valid credentials reach Dashboard on first correct submit                        | Automated + browser verification                             |
+| Sign In success          | Valid credentials reach the MCQ Dashboard on first correct submit                | Automated + browser verification                             |
 | Sign In safety           | Invalid login never discloses whether the email exists                           | Automated assertion on message text                          |
 | Session durability       | Reload and in-app navigation keep the user signed in until Sign Out              | Browser verification + integration tests                     |
-| Sign Out completeness    | Dashboard is unreachable with the old session                                    | Automated access-control test                                |
+| Sign Out completeness    | MCQ Dashboard is unreachable with the old session                                | Automated access-control test                                |
 | Accessibility            | WCAG 2.2 AA on the three pages                                                   | Keyboard pass + label/error checks; extra audit if available |
 | Engineering health       | Lint and production build clean                                                  | `npm run lint`, `npm run build`                              |
 | Local Workers parity     | Auth flow matches Node results on local Workers                                  | Browser verification on `npm run preview`                    |
@@ -1298,9 +1333,9 @@ Populate during implementation when real failures appear.
 
 ### Protected content visible then redirect
 
-**Problem**: Dashboard HTML appears briefly for signed-out users.  
+**Problem**: MCQ Dashboard HTML appears briefly for signed-out users.  
 **Cause**: Guard runs only in the browser.  
-**Solution**: `getCurrentUser()` in the Dashboard server page redirects before render (`src/app/dashboard/page.tsx`).
+**Solution**: `getCurrentUser()` in the MCQ Dashboard server page redirects before render (`src/app/mcq-dashboard/page.tsx`).
 
 ### `npm run preview` or `npm run deploy` fails with authentication errors
 
@@ -1338,7 +1373,7 @@ Populate during implementation when real failures appear.
 
 When working with this PRD:
 
-1. Read **Overview / Problem**, **Hypothesis**, and **Sprint Goal** first so you do not turn this into a quiz feature.
+1. Read **Overview / Problem**, **Hypothesis**, and **Sprint Goal** first. The signed-in home is the **MCQ Dashboard**. Do not add quiz create/attempt tables or flows without a later PRD.
 2. Treat **Scope** as a hard boundary. Do not build Out of Scope or Cut items.
 3. Authentication is **implemented**. Do not invent a second login system. Reuse `getCurrentUser`, Server Actions, and the D1 session model.
 4. Follow **TDD** for changes: failing tests from this document’s rules, then code. Run `npm test`.
@@ -1354,25 +1389,26 @@ When working with this PRD:
 
 ## Current Status
 
-**Last Updated**: 2026-08-27  
-**Current Phase**: Authentication module shipped (Phases 0–6)  
+**Last Updated**: 2026-08-31  
+**Current Phase**: Authentication module shipped (Phases 0–6); signed-in home is the MCQ Dashboard  
 **Status**: COMPLETED, with open gaps listed below  
-**UI**: Sign Up, Sign In, and Sign Out use Tailwind v4 + shadcn/ui (`AuthShell` centered card, `h-11` inputs and primary actions, Dashboard header Sign out). Live `/sign-up` confirmed.  
-**Implementation**: Phases 1–5 COMPLETED. Tailwind auth layout is in the live Worker.  
-**Deployment**: Phase 6A COMPLETED. Phase 6B COMPLETED (Worker live; Tailwind UI redeployed).  
+**UI**: After Sign In the user lands on `/mcq-dashboard`. `/dashboard` redirects there. Sign Up / Sign In use `AuthShell`.  
+**D1 schema**: Application tables are only `users` and `sessions` (required fields: user identity + password hash; session id + user_id). No quiz tables.  
+**Implementation**: Phases 1–5 COMPLETED. MCQ Dashboard landing added 2026-08-31.  
+**Deployment**: Phase 6A COMPLETED. Phase 6B COMPLETED (Worker live; MCQ Dashboard redeployed).  
 **Production URL**: [https://quizmaker.es-quizmaker.workers.dev](https://quizmaker.es-quizmaker.workers.dev)  
-**Worker version**: `6e1a4f8e-9b51-495e-bb60-ca4f05e7338e`  
+**Worker version**: `b9836f74-f1a6-4b3a-bef6-cffd8a20d8a2`  
 **D1**: Binding `DB`, database `quizmaker`, id `77853f50-68c5-4e72-87dc-62fac583a24c`  
-**Tests**: `npm test` — 48 passing (Vitest)  
-**Lint / build**: `npm run deploy` ran `next build` successfully (OpenNext + Cloudflare)  
+**Tests**: `npm test` — 49 passing (Vitest)  
+**Lint / build**: `npm run lint` succeeded (existing `.wrangler` tmp warnings only). `npm run build` succeeded (`/mcq-dashboard` and `/dashboard` listed).  
 
 **Open gaps**
 
 - AR-16 rate limiting is not implemented.
 - Keyboard-only completion was not separately audited (forms are native and labelled).
-- Live HTTPS Sign Up → Sign In → session reload → Sign Out was not click-tested after deploy; signed-out redirects on the live URL were verified.
+- Live HTTPS Sign Up → Sign In → MCQ Dashboard → Sign Out was not click-tested after deploy; signed-out redirects on `/`, `/mcq-dashboard`, and `/dashboard` were verified.
 - Formal WCAG 2.2 AA audit was not run.
 
-**Next Steps**: Later sprints build quiz features on this session model. Do not replace authentication. Confirm a live Sign Up / Sign In / Sign Out click-through on the production URL when convenient.
+**Next Steps**: Later sprints add MCQ create/attempt on this session model. Do not replace authentication.
 
 **Out of this module**: Quiz creation, management, attempts, and reports.

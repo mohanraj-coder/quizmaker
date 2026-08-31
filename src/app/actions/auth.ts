@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AUTH_MESSAGES } from "@/lib/auth/messages";
+import { MCQ_DASHBOARD_PATH, SIGN_IN_PATH } from "@/lib/auth/paths";
 import { SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session";
 import type { SignInErrors, SignUpErrors } from "@/lib/auth/validation";
 import { parseSignInFormData, parseSignUpFormData } from "@/lib/auth/validation";
@@ -56,7 +57,7 @@ export async function signUpAction(
 		return { errors: { form: AUTH_MESSAGES.systemError } };
 	}
 
-	redirect("/sign-in?registered=1");
+	redirect(`${SIGN_IN_PATH}?registered=1`);
 }
 
 export async function signInAction(
@@ -93,7 +94,7 @@ export async function signInAction(
 		path: options.path,
 	});
 
-	redirect("/dashboard");
+	redirect(MCQ_DASHBOARD_PATH);
 }
 
 export async function signOutAction() {
@@ -116,5 +117,5 @@ export async function signOutAction() {
 		maxAge: 0,
 	});
 
-	redirect("/sign-in?signedOut=1");
+	redirect(`${SIGN_IN_PATH}?signedOut=1`);
 }
