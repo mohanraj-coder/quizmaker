@@ -813,7 +813,7 @@ After each phase, follow **Release and review gates**: user review → local dep
 
 **Phase gate**: After user review of Phase 1, local deploy (tests; apply migration locally; `npm run preview` if D1 is exercised). After approval, push to the feature branch. No Cloudflare deploy unless explicitly confirmed.
 
-### Phase 2: MCQ service CRUD — PLANNED
+### Phase 2: MCQ service CRUD — COMPLETED
 
 **Objective**: Domain operations for create, list, retrieve, update, and delete, with ownership enforced in the service — following `src/lib/services/auth.ts` + `d1-auth-store.ts`.
 
@@ -925,10 +925,14 @@ Phase 1 (present):
 - `src/lib/mcq/paths.ts` — Canonical MCQ routes
 - `src/lib/mcq/paths.test.ts` — Dashboard-nested create/edit/preview paths
 
-Later phases (not built in Phase 1):
-- `src/lib/services/mcq.ts` — Domain operations
-- `src/lib/services/d1-mcq-store.ts` — D1 implementation
+Phase 2 (present):
+
+- `src/lib/services/mcq.ts` — create, list, get, update, delete with ownership
+- `src/lib/services/mcq.test.ts` — In-memory store coverage for CRUD and ownership
+- `src/lib/services/d1-mcq-store.ts` — D1 implementation (`?1`, `?2`)
 - `src/lib/db.ts` — `getMcqStore()` next to `getAuthStore()`
+
+Later phases (not built in Phase 2):
 - `src/app/actions/mcq.ts` — Server Actions
 - `src/app/api/mcq/route.ts` — GET list, POST create
 - `src/app/api/mcq/[id]/route.ts` — GET / PUT / DELETE
@@ -1144,12 +1148,12 @@ When working with this PRD:
 ## Current Status
 
 **Last Updated**: 2026-09-02  
-**Current Phase**: Phase 1 COMPLETED (user reviewed; pushed to feature branch). Phase 2 PLANNED.  
-**Status**: Phase 1 approved. Cloudflare production deploy was not run.  
-**Implementation**: Validation tests and copy; `McqStore` interface, paths, and messages; `0003_create_mcq_tables.sql` applied to **local** D1 only.  
-**Tests**: `npm test` — 10 files, 72 tests passed.  
-**Release gates**: Phase 1 pushed to the feature branch after approval. Cloudflare production deploy only after explicit confirmation.  
-**Depends on**: Authentication module shipped (MCQ Dashboard is the signed-in home; list is still an empty stub until later phases).  
-**Next Steps**: Phase 2 — MCQ service CRUD with TDD.
+**Current Phase**: Phase 2 COMPLETED (user reviewed; pushed to feature branch). Phase 3 PLANNED.  
+**Status**: Phase 2 approved. Cloudflare production deploy was not run.  
+**Implementation**: Service CRUD with ownership; `D1McqStore`; `getMcqStore()`. No HTTP routes or UI in this phase.  
+**Tests**: `npm test` — 11 files, 84 tests passed.  
+**Release gates**: Phase 2 pushed to `feature/mcq-crud` after approval. Cloudflare production deploy only after explicit confirmation.  
+**Depends on**: Phase 1 COMPLETED.  
+**Next Steps**: Phase 3 — preview, attempts, HTTP routes, and Server Actions.
 
 **Out of this module**: Multi-question quizzes, reports, roles, unsolicited Cloudflare deploy, and any change to Sign Up / Sign In / Sign Out / sessions.
