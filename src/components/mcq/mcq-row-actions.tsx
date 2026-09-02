@@ -66,11 +66,20 @@ export function McqRowActions({ id }: McqRowActionsProps) {
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
-						<DialogClose render={<Button variant="outline" />}>
+						<DialogClose
+							render={
+								<Button variant="outline" className="h-11 w-full sm:w-24" />
+							}
+						>
 							Cancel
 						</DialogClose>
-						<form action={deleteMcqAction.bind(null, id)}>
-							<Button type="submit" variant="destructive" className="h-11">
+						{/* display:contents keeps the button a direct footer flex item so it sizes like Cancel. */}
+						<form action={deleteMcqAction.bind(null, id)} className="contents">
+							<Button
+								type="submit"
+								variant="destructive"
+								className="h-11 w-full sm:w-24"
+							>
 								Delete
 							</Button>
 						</form>

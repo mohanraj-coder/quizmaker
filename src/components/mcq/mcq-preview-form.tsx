@@ -11,9 +11,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Field,
 	FieldError,
+	FieldLabel,
 	FieldLegend,
 	FieldSet,
 } from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MCQ_DASHBOARD_PATH } from "@/lib/auth/paths";
 import { MCQ_MESSAGES } from "@/lib/mcq/messages";
 import type { McqPreview } from "@/lib/services/mcq";
@@ -39,26 +41,24 @@ export function McqPreviewForm({ mcq }: McqPreviewFormProps) {
 				<Field data-invalid={Boolean(state.error) || undefined}>
 					<FieldSet>
 						<FieldLegend>Select a choice</FieldLegend>
-						<div className="flex flex-col gap-2">
+						<RadioGroup
+							name="choiceId"
+							className="flex flex-col gap-2"
+							aria-invalid={Boolean(state.error) || undefined}
+							aria-describedby={
+								state.error ? "preview-choice-error" : undefined
+							}
+						>
 							{mcq.choices.map((choice) => (
-								<label
+								<FieldLabel
 									key={choice.id}
-									className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm"
+									className="w-full items-start rounded-lg border border-border p-3 text-sm font-normal"
 								>
-									<input
-										type="radio"
-										name="choiceId"
-										value={choice.id}
-										required
-										aria-invalid={Boolean(state.error) || undefined}
-										aria-describedby={
-											state.error ? "preview-choice-error" : undefined
-										}
-									/>
+									<RadioGroupItem value={choice.id} />
 									<span>{choice.text}</span>
-								</label>
+								</FieldLabel>
 							))}
-						</div>
+						</RadioGroup>
 						<FieldError
 							id="preview-choice-error"
 							errors={state.error ? [{ message: state.error }] : undefined}

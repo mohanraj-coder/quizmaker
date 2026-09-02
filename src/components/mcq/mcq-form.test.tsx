@@ -27,6 +27,19 @@ describe("McqForm", () => {
 		expect(action).not.toHaveBeenCalled();
 	});
 
+	it("submits the marked choice as the correct answer", async () => {
+		const user = userEvent.setup();
+		render(<McqForm title="New multiple choice question" action={vi.fn()} />);
+
+		await user.click(
+			screen.getByRole("radio", { name: "Correct answer for choice 2" }),
+		);
+
+		const form = screen.getByRole("button", { name: "Save" }).closest("form");
+		expect(form).not.toBeNull();
+		expect(new FormData(form as HTMLFormElement).get("correctChoice")).toBe("1");
+	});
+
 	it("associates field errors with inputs for assistive technology", async () => {
 		const user = userEvent.setup();
 		render(<McqForm title="New multiple choice question" action={vi.fn()} />);

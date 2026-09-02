@@ -14,6 +14,7 @@ import {
 	FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { MCQ_DASHBOARD_PATH } from "@/lib/auth/paths";
 import { cn } from "@/lib/utils";
@@ -93,6 +94,15 @@ export function McqForm({ title, action, initial }: McqFormProps) {
 		setChoices([...choices, { text: "", isCorrect: false }]);
 	}
 
+	function markCorrect(index: number) {
+		setChoices(
+			choices.map((item, current) => ({
+				...item,
+				isCorrect: current === index,
+			})),
+		);
+	}
+
 	function removeChoice(index: number) {
 		if (choices.length <= MIN_CHOICES) {
 			return;
@@ -157,7 +167,12 @@ export function McqForm({ title, action, initial }: McqFormProps) {
 				<Field data-invalid={Boolean(errors.choices) || undefined}>
 					<FieldSet>
 						<FieldLegend>Choices</FieldLegend>
-						<div className="flex flex-col gap-4">
+						<RadioGroup
+							name="correctChoice"
+							value={String(correctIndex)}
+							onValueChange={(value) => markCorrect(Number(value))}
+							className="flex flex-col gap-4"
+						>
 							{choices.map((choice, index) => (
 								<div
 									key={index}
@@ -193,24 +208,11 @@ export function McqForm({ title, action, initial }: McqFormProps) {
 												: undefined
 										}
 									/>
-									<label className="flex items-center gap-2 text-sm">
-										<input
-											type="radio"
-											name="correctChoice"
-											value={String(index)}
-											checked={correctIndex === index}
-											aria-label={`Mark choice ${index + 1} as correct`}
-											onChange={() => {
-												setChoices(
-													choices.map((item, current) => ({
-														...item,
-														isCorrect: current === index,
-													})),
-												);
-											}}
-										/>
-										Correct answer
-									</label>
+									<FieldLabel className="items-center text-sm font-normal">
+										<RadioGroupItem value={String(index)} />
+										Correct answer{" "}
+										<span className="sr-only">for choice {index + 1}</span>
+									</FieldLabel>
 									<Button
 										type="button"
 										variant="outline"
@@ -221,7 +223,7 @@ export function McqForm({ title, action, initial }: McqFormProps) {
 									</Button>
 								</div>
 							))}
-						</div>
+						</RadioGroup>
 						<FieldError
 							id="choices-error"
 							errors={errors.choices ? [{ message: errors.choices }] : undefined}
