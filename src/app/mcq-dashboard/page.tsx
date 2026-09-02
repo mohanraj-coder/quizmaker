@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-
-import { getCurrentUser } from "@/app/actions/auth";
 import { McqAppShell } from "@/components/mcq/mcq-app-shell";
 import { McqList } from "@/components/mcq/mcq-list";
 import {
@@ -9,8 +6,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { SIGN_IN_PATH } from "@/lib/auth/paths";
 import { getMcqStore } from "@/lib/db";
+import { requireMcqUser } from "@/lib/mcq/require-user";
 import { listMcqsForUser } from "@/lib/services/mcq";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +17,7 @@ export const metadata = {
 };
 
 export default async function McqDashboardPage() {
-	const user = await getCurrentUser();
-	if (!user) {
-		redirect(SIGN_IN_PATH);
-	}
+	const user = await requireMcqUser();
 
 	const questions = await listMcqsForUser(await getMcqStore(), user.id);
 

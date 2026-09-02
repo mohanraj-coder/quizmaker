@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import type { McqActionState } from "@/app/actions/mcq";
@@ -10,6 +10,8 @@ import {
 	FieldError,
 	FieldGroup,
 	FieldLabel,
+	FieldLegend,
+	FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,10 +58,23 @@ export function McqForm({ title, action, initial }: McqFormProps) {
 		initial?.choices?.length ? initial.choices : defaultChoices(),
 	);
 	const errors = { ...serverState.errors, ...clientErrors };
+	const firstErrorId = errors.name
+		? "name"
+		: errors.description
+			? "description"
+			: choices.find((_, index) => errors[`choice-${index}`])
+				? `choiceText-${choices.findIndex((_, index) => errors[`choice-${index}`])}`
+				: undefined;
 	const correctIndex = useMemo(() => {
 		const index = choices.findIndex((choice) => choice.isCorrect);
 		return index >= 0 ? index : 0;
 	}, [choices]);
+
+	useEffect(() => {
+		if (firstErrorId) {
+			document.getElementById(firstErrorId)?.focus();
+		}
+	}, [firstErrorId]);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		const result = validateMcqInput(parseMcqFormData(new FormData(event.currentTarget)));
@@ -113,9 +128,13 @@ export function McqForm({ title, action, initial }: McqFormProps) {
 						name="name"
 						defaultValue={initial?.name ?? ""}
 						aria-invalid={Boolean(errors.name) || undefined}
+						aria-describedby={errors.name ? "name-error" : undefined}
 						className="h-11"
 					/>
-					<FieldError errors={errors.name ? [{ message: errors.name }] : undefined} />
+					<FieldError
+						id="name-error"
+						errors={errors.name ? [{ message: errors.name }] : undefined}
+					/>
 				</Field>
 				<Field data-invalid={Boolean(errors.description) || undefined}>
 					<FieldLabel htmlFor="description">Question / description</FieldLabel>
@@ -124,86 +143,107 @@ export function McqForm({ title, action, initial }: McqFormProps) {
 						name="description"
 						defaultValue={initial?.description ?? ""}
 						aria-invalid={Boolean(errors.description) || undefined}
+						aria-describedby={
+							errors.description ? "description-error" : undefined
+						}
 					/>
 					<FieldError
+						id="description-error"
 						errors={
 							errors.description ? [{ message: errors.description }] : undefined
 						}
 					/>
 				</Field>
 				<Field data-invalid={Boolean(errors.choices) || undefined}>
-					<FieldLabel>Choices</FieldLabel>
-					<div className="flex flex-col gap-4">
-						{choices.map((choice, index) => (
-							<div
-								key={index}
-								className="flex flex-col gap-2 rounded-lg border border-border p-3"
-							>
-								<FieldLabel htmlFor={`choiceText-${index}`}>
-									Choice {index + 1}
-								</FieldLabel>
-								<Input
-									id={`choiceText-${index}`}
-									name={`choiceText-${index}`}
-									value={choice.text}
-									onChange={(event) => {
-										const next = [...choices];
-										next[index] = { ...choice, text: event.target.value };
-										setChoices(next);
-									}}
-									aria-invalid={Boolean(errors[`choice-${index}`]) || undefined}
-									className="h-11"
-								/>
-								<FieldError
-									errors={
-										errors[`choice-${index}`]
-											? [{ message: errors[`choice-${index}`] }]
-											: undefined
-									}
-								/>
-								<label className="flex items-center gap-2 text-sm">
-									<input
-										type="radio"
-										name="correctChoice"
-										value={String(index)}
-										checked={correctIndex === index}
-										onChange={() => {
-											setChoices(
-												choices.map((item, current) => ({
-													...item,
-													isCorrect: current === index,
-												})),
-											);
-										}}
-									/>
-									Correct answer
-								</label>
-								<Button
-									type="button"
-									variant="outline"
-									disabled={choices.length <= MIN_CHOICES}
-									onClick={() => removeChoice(index)}
+					<FieldSet>
+						<FieldLegend>Choices</FieldLegend>
+						<div className="flex flex-col gap-4">
+							{choices.map((choice, index) => (
+								<div
+									key={index}
+									className="flex flex-col gap-2 rounded-lg border border-border p-3"
 								>
-									Remove
-								</Button>
-							</div>
-						))}
-					</div>
-					<FieldError
-						errors={errors.choices ? [{ message: errors.choices }] : undefined}
-					/>
-					<Button
-						type="button"
-						variant="outline"
-						disabled={choices.length >= MAX_CHOICES}
-						onClick={addChoice}
-					>
-						Add choice
-					</Button>
+									<FieldLabel htmlFor={`choiceText-${index}`}>
+										Choice {index + 1}
+									</FieldLabel>
+									<Input
+										id={`choiceText-${index}`}
+										name={`choiceText-${index}`}
+										value={choice.text}
+										onChange={(event) => {
+											const next = [...choices];
+											next[index] = { ...choice, text: event.target.value };
+											setChoices(next);
+										}}
+										aria-invalid={
+											Boolean(errors[`choice-${index}`]) || undefined
+										}
+										aria-describedby={
+											errors[`choice-${index}`]
+												? `choice-${index}-error`
+												: undefined
+										}
+										className="h-11"
+									/>
+									<FieldError
+										id={`choice-${index}-error`}
+										errors={
+											errors[`choice-${index}`]
+												? [{ message: errors[`choice-${index}`] }]
+												: undefined
+										}
+									/>
+									<label className="flex items-center gap-2 text-sm">
+										<input
+											type="radio"
+											name="correctChoice"
+											value={String(index)}
+											checked={correctIndex === index}
+											aria-label={`Mark choice ${index + 1} as correct`}
+											onChange={() => {
+												setChoices(
+													choices.map((item, current) => ({
+														...item,
+														isCorrect: current === index,
+													})),
+												);
+											}}
+										/>
+										Correct answer
+									</label>
+									<Button
+										type="button"
+										variant="outline"
+										disabled={choices.length <= MIN_CHOICES}
+										onClick={() => removeChoice(index)}
+									>
+										Remove choice {index + 1}
+									</Button>
+								</div>
+							))}
+						</div>
+						<FieldError
+							id="choices-error"
+							errors={errors.choices ? [{ message: errors.choices }] : undefined}
+						/>
+						<Button
+							type="button"
+							variant="outline"
+							disabled={choices.length >= MAX_CHOICES}
+							onClick={addChoice}
+						>
+							Add choice
+						</Button>
+					</FieldSet>
 				</Field>
 			</FieldGroup>
 			<div className="flex flex-wrap gap-3">
-				<Button type="submit" className="h-11 min-w-24" disabled={pending}>
+				<Button
+					type="submit"
+					className="h-11 min-w-24"
+					disabled={pending}
+					aria-busy={pending}
+				>
 					{pending ? "Saving…" : "Save"}
 				</Button>
 				<Link

@@ -43,6 +43,26 @@ describe("McqList", () => {
 		expect(screen.getByRole("columnheader", { name: "Actions" })).toBeTruthy();
 		expect(screen.getByText("Capitals")).toBeTruthy();
 	});
+
+	it("renders user-supplied name and description as text", () => {
+		render(
+			<McqList
+				questions={[
+					{
+						id: "q1",
+						name: "<img src=x alt=xss>",
+						description: "<script>alert(1)</script>",
+						createdAt: "2026-09-02",
+						updatedAt: "2026-09-02",
+					},
+				]}
+			/>,
+		);
+
+		expect(screen.getByText("<img src=x alt=xss>")).toBeTruthy();
+		expect(screen.getByText("<script>alert(1)</script>")).toBeTruthy();
+		expect(screen.queryByRole("img")).toBeNull();
+	});
 });
 
 describe("McqList row actions", () => {

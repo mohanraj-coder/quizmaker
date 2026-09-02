@@ -26,4 +26,19 @@ describe("McqForm", () => {
 		expect(await screen.findByText(MCQ_MESSAGES.nameRequired)).toBeTruthy();
 		expect(action).not.toHaveBeenCalled();
 	});
+
+	it("associates field errors with inputs for assistive technology", async () => {
+		const user = userEvent.setup();
+		render(<McqForm title="New multiple choice question" action={vi.fn()} />);
+
+		await user.click(screen.getByRole("button", { name: "Save" }));
+
+		const name = await screen.findByLabelText("Question name");
+		expect(name.getAttribute("aria-invalid")).toBe("true");
+		expect(name.getAttribute("aria-describedby")).toBe("name-error");
+		expect(document.getElementById("name-error")?.textContent).toBe(
+			MCQ_MESSAGES.nameRequired,
+		);
+		expect(document.activeElement).toBe(name);
+	});
 });

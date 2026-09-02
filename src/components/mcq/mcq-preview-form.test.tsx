@@ -33,4 +33,22 @@ describe("McqPreviewForm", () => {
 			"isCorrect",
 		);
 	});
+
+	it("renders user-supplied question copy as text", () => {
+		render(
+			<McqPreviewForm
+				mcq={{
+					id: "q1",
+					name: "<b>Capitals</b>",
+					description: "<img src=x alt=xss>",
+					choices: [{ id: "c1", text: "<script>alert(1)</script>" }],
+				}}
+			/>,
+		);
+
+		expect(screen.getByRole("heading", { name: "<b>Capitals</b>" })).toBeTruthy();
+		expect(screen.getByText("<img src=x alt=xss>")).toBeTruthy();
+		expect(screen.getByText("<script>alert(1)</script>")).toBeTruthy();
+		expect(screen.queryByRole("img")).toBeNull();
+	});
 });

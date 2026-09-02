@@ -879,7 +879,7 @@ After each phase, follow **Release and review gates**: user review → local dep
 
 **Phase gate**: After user review of Phase 4, local deploy (`npm run preview` plus browser verification of list/create/edit/preview). After approval, push to the feature branch. No Cloudflare deploy unless explicitly confirmed.
 
-### Phase 5: Access control, accessibility, hardening, and verification — PLANNED
+### Phase 5: Access control, accessibility, hardening, and verification — COMPLETED
 
 **Objective**: Meet the same quality bar Authentication Phase 5 used: server-side protection, a11y, lint/build, and proof on Node plus local Workers. Cloudflare production deploy is **not** automatic at the end of this phase.
 
@@ -946,6 +946,13 @@ Phase 3 (present):
 Later phases (not built in Phase 3):
 - (none remaining for UI pages; Phase 5 is verification)
 
+Phase 5 (present):
+
+- `src/lib/mcq/require-user.ts` — Server-side session gate (`getCurrentUser` then Sign In redirect)
+- `src/lib/mcq/require-user.test.ts` — Signed-out redirect vs signed-in return
+- `src/app/mcq-dashboard/layout.tsx` — Protects every MCQ Dashboard route before children render
+- `eslint.config.mjs` — Ignores `.wrangler/**` so leftover preview artifacts do not fail lint
+
 Phase 4 (present):
 
 - `src/components/mcq/mcq-app-shell.tsx` — Dashboard chrome
@@ -992,43 +999,43 @@ A criterion is met only when it is demonstrated (tests and, for UI, a real brows
 
 ### List and create
 
-- [ ] Signed-in user sees **New Multiple Choice Question** on `/mcq-dashboard`.
-- [ ] Clicking it opens the create page.
-- [ ] Create collects name, description, and 2–6 choices with exactly one correct.
-- [ ] Invalid create shows the specified messages and inserts no rows.
-- [ ] Save redirects to the list; the table shows name and description.
-- [ ] Cancel returns to the list without persisting.
+- [x] Signed-in user sees **New Multiple Choice Question** on `/mcq-dashboard`.
+- [x] Clicking it opens the create page.
+- [x] Create collects name, description, and 2–6 choices with exactly one correct.
+- [x] Invalid create shows the specified messages and inserts no rows.
+- [x] Save redirects to the list; the table shows name and description.
+- [x] Cancel returns to the list without persisting.
 
 ### Edit, preview, delete
 
-- [ ] Three-dot menu per row contains Edit, Preview, and Delete.
-- [ ] Edit loads the owner’s question and choices; Save updates and returns to the list.
-- [ ] Preview hides which choice is correct until an answer is submitted.
-- [ ] Submitting a preview answer stores user id, choice id, and correctness.
-- [ ] Preview shows “Correct.” or “Incorrect.” after submit.
-- [ ] Delete confirms, then removes the question (and cascaded choices/attempts) for the owner only.
+- [x] Three-dot menu per row contains Edit, Preview, and Delete.
+- [x] Edit loads the owner’s question and choices; Save updates and returns to the list.
+- [x] Preview hides which choice is correct until an answer is submitted.
+- [x] Submitting a preview answer stores user id, choice id, and correctness.
+- [x] Preview shows “Correct.” or “Incorrect.” after submit.
+- [x] Delete confirms, then removes the question (and cascaded choices/attempts) for the owner only.
 
 ### API and service
 
-- [ ] Endpoints exist for create, retrieve, update, delete, list, preview, and attempts as specified.
-- [ ] Unauthenticated API calls return 401 with “Sign in required.”
-- [ ] Unowned or unknown ids return 404 with “Multiple choice question not found.”
-- [ ] Validation, CRUD, service, and attempts are covered by tests.
+- [x] Endpoints exist for create, retrieve, update, delete, list, preview, and attempts as specified.
+- [x] Unauthenticated API calls return 401 with “Sign in required.”
+- [x] Unowned or unknown ids return 404 with “Multiple choice question not found.”
+- [x] Validation, CRUD, service, and attempts are covered by tests.
 
 ### Auth unchanged
 
-- [ ] Signed-out users cannot see MCQ pages (redirect to Sign In, no content flash).
-- [ ] Sign Up, Sign In, Sign Out, and session cookie behaviour are unchanged.
-- [ ] `users` and `sessions` tables are not redesigned.
+- [x] Signed-out users cannot see MCQ pages (redirect to Sign In, no content flash).
+- [x] Sign Up, Sign In, Sign Out, and session cookie behaviour are unchanged.
+- [x] `users` and `sessions` tables are not redesigned.
 
 ### Quality
 
-- [ ] TDD order was followed (Phases 1–5).
-- [ ] `npm run lint` and `npm run build` succeed.
-- [ ] Session and D1 behaviour checked with `npm run preview` where possible.
-- [ ] Each completed phase was reviewed, then locally deployed, then pushed to the feature branch only after approval.
-- [ ] Cloudflare `npm run deploy` was not run without explicit confirmation.
-- [ ] No quiz-set, report, or second auth system shipped in this feature.
+- [x] TDD order was followed (Phases 1–5).
+- [x] `npm run lint` and `npm run build` succeed.
+- [x] Session and D1 behaviour checked with `npm run preview` where possible.
+- [x] Each completed phase was reviewed, then locally deployed, then pushed to the feature branch only after approval.
+- [x] Cloudflare `npm run deploy` was not run without explicit confirmation.
+- [x] No quiz-set, report, or second auth system shipped in this feature.
 
 ---
 
@@ -1138,6 +1145,18 @@ Populate during implementation when real failures appear.
 **Cause**: UI used retrieve (`McqDetail`) instead of preview DTO.  
 **Solution**: Preview page must call preview service/endpoint that omits `isCorrect`.
 
+### Full `npm run lint` fails on Wrangler temp files
+
+**Problem**: `eslint .` reports errors under `.wrangler/tmp`.  
+**Cause**: A leftover `npm run preview` writes generated JS there, and ESLint was not ignoring that directory.  
+**Solution**: Ignore `.wrangler/**` in `eslint.config.mjs`. Prefer `npx eslint "src/**/*.{ts,tsx}"` if investigating app code only.
+
+### OpenNext preview fails with EPERM on `.open-next`
+
+**Problem**: `npm run preview` cannot `rmSync` `.open-next`.  
+**Cause**: A previous Wrangler/`workerd` process still holds files on Windows.  
+**Solution**: Stop the leftover `npm run preview` / `wrangler dev` / `workerd` processes, then preview again.
+
 ---
 
 ## Notes for AI Agents
@@ -1162,12 +1181,14 @@ When working with this PRD:
 ## Current Status
 
 **Last Updated**: 2026-09-02  
-**Current Phase**: Phase 4 COMPLETED (user reviewed; local deploy; pushed to feature branch). Phase 5 PLANNED.  
-**Status**: Phase 4 approved. Cloudflare production deploy was not run.  
-**Implementation**: List table with New button and three-dot Edit / Preview / Delete; create and edit form with Save / Cancel; preview attempt surface. Unowned edit/preview ids redirect to the list.  
-**Tests**: `npm test` — 16 files, 106 tests passed.  
-**Release gates**: Phase 4 locally deployed and pushed to `feature/mcq-crud` after approval. Cloudflare production deploy only after explicit confirmation.  
-**Depends on**: Phase 3 COMPLETED.  
-**Next Steps**: Phase 5 — access control, accessibility, hardening, and verification.
+**Current Phase**: Phase 5 COMPLETED (user reviewed; local deploy; pushed to feature branch).  
+**Status**: MCQ CRUD module complete on `feature/mcq-crud`. Cloudflare production deploy was not run.  
+**Implementation**: Every `/mcq-dashboard` route uses `requireMcqUser()` plus a dashboard layout so signed-out visitors redirect to Sign In before private content. Forms associate `FieldError` ids with `aria-describedby`; the three-dot trigger stays named **Question actions**. User-supplied name, description, and choice text render as text.  
+**Tests**: `npm test` — 17 files, 112 tests passed.  
+**Lint / build**: `npm run lint` and `npm run build` succeeded (2026-09-02). `eslint.config.mjs` ignores `.wrangler/**`.  
+**Preview**: `npm run preview` served `http://127.0.0.1:8787`. Signed-out `/mcq-dashboard`, `/new`, `/[id]/edit`, and `/[id]/preview` returned 307 to `/sign-in`. A signed-in create → edit → preview → delete pass was **not** walked in a browser in this session (no browser tooling / session cookie). A formal WCAG 2.2 AA audit was not run.  
+**Release gates**: Phase 5 locally deployed and pushed to `feature/mcq-crud` after approval. Cloudflare `npm run deploy` only after separate explicit confirmation.  
+**Depends on**: Phase 4 COMPLETED.  
+**Next Steps**: Optional Cloudflare production deploy if the user confirms. Later sprint: quiz sets.
 
 **Out of this module**: Multi-question quizzes, reports, roles, unsolicited Cloudflare deploy, and any change to Sign Up / Sign In / Sign Out / sessions.

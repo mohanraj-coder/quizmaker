@@ -39,7 +39,7 @@ export function McqRowActions({ id }: McqRowActionsProps) {
 						<Button variant="ghost" size="icon" className="size-11" />
 					}
 				>
-					<MoreHorizontal />
+					<MoreHorizontal aria-hidden="true" />
 					<span className="sr-only">Question actions</span>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="min-w-36">

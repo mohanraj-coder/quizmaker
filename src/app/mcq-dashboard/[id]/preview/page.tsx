@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { getCurrentUser } from "@/app/actions/auth";
 import { McqAppShell } from "@/components/mcq/mcq-app-shell";
 import { McqPreviewForm } from "@/components/mcq/mcq-preview-form";
-import { MCQ_DASHBOARD_PATH, SIGN_IN_PATH } from "@/lib/auth/paths";
+import { MCQ_DASHBOARD_PATH } from "@/lib/auth/paths";
 import { getMcqStore } from "@/lib/db";
+import { requireMcqUser } from "@/lib/mcq/require-user";
 import { previewMcqForOwner } from "@/lib/services/mcq";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +18,7 @@ type PageProps = {
 };
 
 export default async function PreviewMcqPage({ params }: PageProps) {
-	const user = await getCurrentUser();
-	if (!user) {
-		redirect(SIGN_IN_PATH);
-	}
+	const user = await requireMcqUser();
 
 	const { id } = await params;
 	const result = await previewMcqForOwner(await getMcqStore(), user.id, id);

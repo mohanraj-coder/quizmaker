@@ -22,4 +22,11 @@ describe("McqRowActions", () => {
 		).toBeTruthy();
 		expect(screen.getByText(MCQ_MESSAGES.deleteConfirmDescription)).toBeTruthy();
 	});
+
+	it("names the actions trigger for assistive technology", () => {
+		render(<McqRowActions id="q1" />);
+		expect(
+			screen.getByRole("button", { name: "Question actions" }),
+		).toBeTruthy();
+	});
 });
