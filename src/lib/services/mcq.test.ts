@@ -1,19 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { InMemoryMcqStore } from "@/lib/mcq/in-memory-store";
 import { MCQ_MESSAGES } from "@/lib/mcq/messages";
-import type {
-	McqAttemptRecord,
-	McqListItem,
-	McqRecord,
-	McqStore,
-	NewMcqRecord,
-} from "@/lib/mcq/store";
 import type { McqFields } from "@/lib/mcq/validation";
 import {
 	createMcq,
 	deleteMcqForOwner,
 	getMcqForOwner,
+	listAttemptsForOwner,
 	listMcqsForUser,
+	previewMcqForOwner,
+	recordAttempt,
 	updateMcqForOwner,
 } from "@/lib/services/mcq";
 
@@ -28,102 +25,6 @@ const validInput: McqFields = {
 		{ text: "Lyon", isCorrect: false },
 	],
 };
-
-class InMemoryMcqStore implements McqStore {
-	questions: McqRecord[] = [];
-	attempts: McqAttemptRecord[] = [];
-
-	async insertMcq(mcq: NewMcqRecord): Promise<McqRecord> {
-		const now = "2026-09-02T00:00:00.000Z";
-		const record: McqRecord = {
-			id: mcq.id,
-			userId: mcq.userId,
-			name: mcq.name,
-			description: mcq.description,
-			createdAt: now,
-			updatedAt: now,
-			choices: mcq.choices.map((choice) => ({
-				...choice,
-				mcqId: mcq.id,
-			})),
-		};
-		this.questions.push(record);
-		return structuredClone(record);
-	}
-
-	async replaceMcq(mcq: NewMcqRecord): Promise<McqRecord | null> {
-		const index = this.questions.findIndex((row) => row.id === mcq.id);
-		if (index < 0) {
-			return null;
-		}
-		const existing = this.questions[index]!;
-		const nextChoiceIds = new Set(mcq.choices.map((choice) => choice.id));
-		for (const attempt of this.attempts) {
-			if (
-				attempt.mcqId === mcq.id &&
-				attempt.choiceId &&
-				!nextChoiceIds.has(attempt.choiceId)
-			) {
-				attempt.choiceId = null;
-			}
-		}
-		const record: McqRecord = {
-			id: mcq.id,
-			userId: mcq.userId,
-			name: mcq.name,
-			description: mcq.description,
-			createdAt: existing.createdAt,
-			updatedAt: "2026-09-02T01:00:00.000Z",
-			choices: mcq.choices.map((choice) => ({
-				...choice,
-				mcqId: mcq.id,
-			})),
-		};
-		this.questions[index] = record;
-		return structuredClone(record);
-	}
-
-	async findMcqById(id: string): Promise<McqRecord | null> {
-		const record = this.questions.find((row) => row.id === id);
-		return record ? structuredClone(record) : null;
-	}
-
-	async listMcqsByUserId(userId: string): Promise<McqListItem[]> {
-		return this.questions
-			.filter((row) => row.userId === userId)
-			.map((row) => ({
-				id: row.id,
-				name: row.name,
-				description: row.description,
-				createdAt: row.createdAt,
-				updatedAt: row.updatedAt,
-			}));
-	}
-
-	async deleteMcq(id: string): Promise<boolean> {
-		const before = this.questions.length;
-		this.questions = this.questions.filter((row) => row.id !== id);
-		this.attempts = this.attempts.filter((row) => row.mcqId !== id);
-		return this.questions.length < before;
-	}
-
-	async insertAttempt(
-		attempt: Omit<McqAttemptRecord, "createdAt">,
-	): Promise<McqAttemptRecord> {
-		const record: McqAttemptRecord = {
-			...attempt,
-			createdAt: "2026-09-02T00:30:00.000Z",
-		};
-		this.attempts.push(record);
-		return structuredClone(record);
-	}
-
-	async listAttemptsByMcqId(mcqId: string): Promise<McqAttemptRecord[]> {
-		return this.attempts
-			.filter((row) => row.mcqId === mcqId)
-			.map((row) => structuredClone(row));
-	}
-}
 
 let store: InMemoryMcqStore;
 
@@ -347,5 +248,120 @@ describe("deleteMcqForOwner", () => {
 			expect(result.error).toBe(MCQ_MESSAGES.notFound);
 		}
 		expect(store.questions).toHaveLength(1);
+	});
+});
+
+describe("previewMcqForOwner", () => {
+	it("omits isCorrect from choices", async () => {
+		const created = await createMcq(store, OWNER, validInput);
+		expect(created.ok).toBe(true);
+		if (!created.ok) {
+			return;
+		}
+		const result = await previewMcqForOwner(store, OWNER, created.mcq.id);
+		expect(result.ok).toBe(true);
+		if (!result.ok) {
+			return;
+		}
+		expect(result.mcq.choices[0]).toEqual({
+			id: created.mcq.choices[0]?.id,
+			text: "Paris",
+		});
+		expect(JSON.stringify(result.mcq)).not.toContain("isCorrect");
+	});
+
+	it("treats another user's question as not found", async () => {
+		const created = await createMcq(store, OWNER, validInput);
+		expect(created.ok).toBe(true);
+		if (!created.ok) {
+			return;
+		}
+		const result = await previewMcqForOwner(store, OTHER, created.mcq.id);
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.error).toBe(MCQ_MESSAGES.notFound);
+		}
+	});
+});
+
+describe("recordAttempt", () => {
+	it("stores the user, choice, and correctness snapshot", async () => {
+		const created = await createMcq(store, OWNER, validInput);
+		expect(created.ok).toBe(true);
+		if (!created.ok) {
+			return;
+		}
+		const wrong = created.mcq.choices.find((choice) => !choice.isCorrect);
+		const result = await recordAttempt(
+			store,
+			OWNER,
+			created.mcq.id,
+			wrong!.id,
+		);
+		expect(result.ok).toBe(true);
+		if (!result.ok) {
+			return;
+		}
+		expect(result.attempt.userId).toBe(OWNER);
+		expect(result.attempt.choiceId).toBe(wrong!.id);
+		expect(result.attempt.isCorrect).toBe(false);
+	});
+
+	it("rejects a choice that does not belong to the question", async () => {
+		const created = await createMcq(store, OWNER, validInput);
+		expect(created.ok).toBe(true);
+		if (!created.ok) {
+			return;
+		}
+		const result = await recordAttempt(
+			store,
+			OWNER,
+			created.mcq.id,
+			"foreign-choice",
+		);
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.error).toBe(MCQ_MESSAGES.choiceNotFound);
+		}
+		expect(store.attempts).toHaveLength(0);
+	});
+
+	it("rejects an empty choice id", async () => {
+		const created = await createMcq(store, OWNER, validInput);
+		expect(created.ok).toBe(true);
+		if (!created.ok) {
+			return;
+		}
+		const result = await recordAttempt(store, OWNER, created.mcq.id, "  ");
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.error).toBe(MCQ_MESSAGES.choiceRequiredOnAttempt);
+		}
+	});
+});
+
+describe("listAttemptsForOwner", () => {
+	it("lists attempts only for the owner", async () => {
+		const created = await createMcq(store, OWNER, validInput);
+		expect(created.ok).toBe(true);
+		if (!created.ok) {
+			return;
+		}
+		await recordAttempt(
+			store,
+			OWNER,
+			created.mcq.id,
+			created.mcq.choices[0]!.id,
+		);
+		const ownerList = await listAttemptsForOwner(store, OWNER, created.mcq.id);
+		expect(ownerList.ok).toBe(true);
+		if (ownerList.ok) {
+			expect(ownerList.attempts).toHaveLength(1);
+		}
+		const otherList = await listAttemptsForOwner(store, OTHER, created.mcq.id);
+		expect(otherList.ok).toBe(false);
+		if (!otherList.ok) {
+			expect(otherList.error).toBe(MCQ_MESSAGES.notFound);
+		}
 	});
 });

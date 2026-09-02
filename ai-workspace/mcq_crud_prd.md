@@ -834,7 +834,7 @@ After each phase, follow **Release and review gates**: user review → local dep
 
 **Phase gate**: After user review of Phase 2, local deploy (`npm test`, lint/build as applicable, `npm run preview` for D1). After approval, push to the feature branch. No Cloudflare deploy unless explicitly confirmed.
 
-### Phase 3: Preview, attempts, HTTP routes, and Server Actions — PLANNED
+### Phase 3: Preview, attempts, HTTP routes, and Server Actions — COMPLETED
 
 **Objective**: Preview without the answer key; record and list attempts; expose thin HTTP handlers and browser Server Actions that call the same service and require a session.
 
@@ -927,17 +927,23 @@ Phase 1 (present):
 
 Phase 2 (present):
 
-- `src/lib/services/mcq.ts` — create, list, get, update, delete with ownership
-- `src/lib/services/mcq.test.ts` — In-memory store coverage for CRUD and ownership
+- `src/lib/services/mcq.ts` — create, list, get, update, delete, preview, and attempts with ownership
+- `src/lib/services/mcq.test.ts` — In-memory store coverage for CRUD, preview, and attempts
 - `src/lib/services/d1-mcq-store.ts` — D1 implementation (`?1`, `?2`)
 - `src/lib/db.ts` — `getMcqStore()` next to `getAuthStore()`
+- `src/lib/mcq/in-memory-store.ts` — Test store
 
-Later phases (not built in Phase 2):
+Phase 3 (present):
+
+- `src/lib/mcq/http.ts` — Session-aware HTTP status mapping over the MCQ service
+- `src/lib/mcq/http.test.ts` — 401 / 400 / 404 / 200 / 201 / 204
 - `src/app/actions/mcq.ts` — Server Actions
 - `src/app/api/mcq/route.ts` — GET list, POST create
 - `src/app/api/mcq/[id]/route.ts` — GET / PUT / DELETE
 - `src/app/api/mcq/[id]/preview/route.ts` — GET preview
 - `src/app/api/mcq/[id]/attempts/route.ts` — GET list, POST attempt
+
+Later phases (not built in Phase 3):
 - `src/components/mcq/*` — List table, form, preview, row actions
 - `src/app/mcq-dashboard/page.tsx` — List
 - `src/app/mcq-dashboard/new/page.tsx` — Create
@@ -1148,12 +1154,12 @@ When working with this PRD:
 ## Current Status
 
 **Last Updated**: 2026-09-02  
-**Current Phase**: Phase 2 COMPLETED (user reviewed; pushed to feature branch). Phase 3 PLANNED.  
-**Status**: Phase 2 approved. Cloudflare production deploy was not run.  
-**Implementation**: Service CRUD with ownership; `D1McqStore`; `getMcqStore()`. No HTTP routes or UI in this phase.  
-**Tests**: `npm test` — 11 files, 84 tests passed.  
-**Release gates**: Phase 2 pushed to `feature/mcq-crud` after approval. Cloudflare production deploy only after explicit confirmation.  
-**Depends on**: Phase 1 COMPLETED.  
-**Next Steps**: Phase 3 — preview, attempts, HTTP routes, and Server Actions.
+**Current Phase**: Phase 3 COMPLETED (user reviewed; local deploy; pushed to feature branch). Phase 4 PLANNED.  
+**Status**: Phase 3 approved. Cloudflare production deploy was not run.  
+**Implementation**: Preview DTO omits `isCorrect`; attempts snapshot correctness; HTTP `/api/mcq` and Server Actions use the existing session. No list/create/edit UI yet.  
+**Tests**: `npm test` — 12 files, 98 tests passed.  
+**Release gates**: Phase 3 locally deployed and pushed to `feature/mcq-crud` after approval. Cloudflare production deploy only after explicit confirmation.  
+**Depends on**: Phase 2 COMPLETED.  
+**Next Steps**: Phase 4 — list, create/edit, row menu, preview UI.
 
 **Out of this module**: Multi-question quizzes, reports, roles, unsolicited Cloudflare deploy, and any change to Sign Up / Sign In / Sign Out / sessions.
