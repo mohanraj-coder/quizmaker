@@ -1,0 +1,21 @@
+export const MCQ_MESSAGES = {
+	nameRequired: "Name is required.",
+	nameTooLong: "Name must be 200 characters or fewer.",
+	descriptionRequired: "Question / description is required.",
+	descriptionTooLong: "Question / description must be 2000 characters or fewer.",
+	tooFewChoices: "Add at least two choices.",
+	tooManyChoices: "A question can have at most six choices.",
+	choiceRequired: "Choice text is required.",
+	choiceTooLong: "Choice text must be 500 characters or fewer.",
+	exactlyOneCorrect: "Mark exactly one choice as the correct answer.",
+	notFound: "Multiple choice question not found.",
+	choiceNotFound: "That choice is not available for this question.",
+	choiceRequiredOnAttempt: "Select a choice before submitting your answer.",
+	signInRequired: "Sign in required.",
+	systemError: "Something went wrong. Please try again.",
+	deleteConfirmTitle: "Delete this multiple choice question?",
+	deleteConfirmDescription:
+		"This will permanently remove the question, its choices, and recorded attempts.",
+	correctFeedback: "Correct.",
+	incorrectFeedback: "Incorrect.",
+} as const;
