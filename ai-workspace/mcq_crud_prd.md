@@ -856,7 +856,7 @@ After each phase, follow **Release and review gates**: user review → local dep
 
 **Phase gate**: After user review of Phase 3, local deploy including `npm run preview` (session + API on Workers). After approval, push to the feature branch. No Cloudflare deploy unless explicitly confirmed.
 
-### Phase 4: UI — list, create/edit, row menu, preview — PLANNED
+### Phase 4: UI — list, create/edit, row menu, preview — COMPLETED
 
 **Objective**: Replace the empty MCQ Dashboard stub with the list table and complete the create, edit, and preview pages using shadcn and existing dashboard chrome.
 
@@ -944,7 +944,15 @@ Phase 3 (present):
 - `src/app/api/mcq/[id]/attempts/route.ts` — GET list, POST attempt
 
 Later phases (not built in Phase 3):
-- `src/components/mcq/*` — List table, form, preview, row actions
+- (none remaining for UI pages; Phase 5 is verification)
+
+Phase 4 (present):
+
+- `src/components/mcq/mcq-app-shell.tsx` — Dashboard chrome
+- `src/components/mcq/mcq-list.tsx` — Table, empty state, New button
+- `src/components/mcq/mcq-row-actions.tsx` — Three-dot menu and delete dialog
+- `src/components/mcq/mcq-form.tsx` — Create/edit form
+- `src/components/mcq/mcq-preview-form.tsx` — Attempt surface
 - `src/app/mcq-dashboard/page.tsx` — List
 - `src/app/mcq-dashboard/new/page.tsx` — Create
 - `src/app/mcq-dashboard/[id]/edit/page.tsx` — Edit
@@ -1154,12 +1162,12 @@ When working with this PRD:
 ## Current Status
 
 **Last Updated**: 2026-09-02  
-**Current Phase**: Phase 3 COMPLETED (user reviewed; local deploy; pushed to feature branch). Phase 4 PLANNED.  
-**Status**: Phase 3 approved. Cloudflare production deploy was not run.  
-**Implementation**: Preview DTO omits `isCorrect`; attempts snapshot correctness; HTTP `/api/mcq` and Server Actions use the existing session. No list/create/edit UI yet.  
-**Tests**: `npm test` — 12 files, 98 tests passed.  
-**Release gates**: Phase 3 locally deployed and pushed to `feature/mcq-crud` after approval. Cloudflare production deploy only after explicit confirmation.  
-**Depends on**: Phase 2 COMPLETED.  
-**Next Steps**: Phase 4 — list, create/edit, row menu, preview UI.
+**Current Phase**: Phase 4 COMPLETED (user reviewed; local deploy; pushed to feature branch). Phase 5 PLANNED.  
+**Status**: Phase 4 approved. Cloudflare production deploy was not run.  
+**Implementation**: List table with New button and three-dot Edit / Preview / Delete; create and edit form with Save / Cancel; preview attempt surface. Unowned edit/preview ids redirect to the list.  
+**Tests**: `npm test` — 16 files, 106 tests passed.  
+**Release gates**: Phase 4 locally deployed and pushed to `feature/mcq-crud` after approval. Cloudflare production deploy only after explicit confirmation.  
+**Depends on**: Phase 3 COMPLETED.  
+**Next Steps**: Phase 5 — access control, accessibility, hardening, and verification.
 
 **Out of this module**: Multi-question quizzes, reports, roles, unsolicited Cloudflare deploy, and any change to Sign Up / Sign In / Sign Out / sessions.
